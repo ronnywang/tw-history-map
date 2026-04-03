@@ -64,20 +64,11 @@
                     行政區劃
                 </label>
                 <label>
-                    <input type="checkbox" id="toggle-roads">
-                    道路名稱
-                </label>
-                <label>
                     <input type="checkbox" id="toggle-hist1915" checked>
                     1915廳區
                 </label>
             </div>
 
-            <!-- 搜尋框 -->
-            <div class="control-group">
-                <input type="text" id="search-input" placeholder="搜尋地名…">
-                <button id="search-btn">搜尋</button>
-            </div>
         </div>
     </div>
 
@@ -98,17 +89,6 @@
         <span id="current-era-info"></span>
     </div>
 
-    <!-- 搜尋結果 -->
-    <div id="search-results" class="hidden"></div>
-
-    <!-- 點擊資訊 panel -->
-    <div id="info-panel" class="hidden">
-        <div id="info-panel-header">
-            <span id="info-panel-title">行政區資訊</span>
-            <button id="info-panel-close">✕</button>
-        </div>
-        <div id="info-panel-body"></div>
-    </div>
 </div>
 
 <script>

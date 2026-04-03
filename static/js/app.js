@@ -55,7 +55,6 @@ const INIT_ZOOM    = initView.zoom;
 let currentEra     = 'jp_1920';
 let currentBasemap = 'JM50K_1920';
 let showAdmin      = true;
-let showRoads      = false;
 let syncing        = false;   // 防止循環同步
 
 // ── 地圖初始化 ──
@@ -189,37 +188,6 @@ function onMouseMove(e) {
 mapLeft.on('mousemove', onMouseMove);
 mapRight.on('mousemove', onMouseMove);
 
-// ── 右側地圖點擊：查詢行政區資訊 ──
-mapRight.on('click', (e) => {
-    const { lat, lng } = e.latlng;
-    fetch(`/api/info?lon=${lng}&lat=${lat}&era=${currentEra}`)
-        .then(r => r.json())
-        .then(data => {
-            if (!data.success || !data.data.length) return;
-            showInfoPanel(data.data);
-        })
-        .catch(() => {});
-});
-
-function showInfoPanel(divisions) {
-    const levelNames = {1: '州/廳', 2: '郡/市', 3: '街庄/町'};
-    const panel = document.getElementById('info-panel');
-    const body  = document.getElementById('info-panel-body');
-
-    body.innerHTML = divisions.map(d => `
-        <div class="division-row">
-            <span class="level-badge">${levelNames[d.level] || `Level ${d.level}`}</span>
-            <strong>${d.name}</strong>
-            ${d.name_kana ? `<small>（${d.name_kana}）</small>` : ''}
-        </div>
-    `).join('');
-
-    panel.classList.remove('hidden');
-}
-
-document.getElementById('info-panel-close').addEventListener('click', () => {
-    document.getElementById('info-panel').classList.add('hidden');
-});
 
 // ── 時代選擇器 ──
 document.getElementById('era-select').addEventListener('change', (e) => {
@@ -238,67 +206,6 @@ document.getElementById('toggle-admin').addEventListener('change', (e) => {
     refreshRightLayers();
 });
 
-document.getElementById('toggle-roads').addEventListener('change', (e) => {
-    showRoads = e.target.checked;
-    refreshRightLayers();
-});
-
-// ── 搜尋 ──
-function doSearch() {
-    const q = document.getElementById('search-input').value.trim();
-    if (!q) return;
-
-    fetch(`/api/search?q=${encodeURIComponent(q)}&era=${currentEra}`)
-        .then(r => r.json())
-        .then(data => {
-            if (!data.success) return;
-            showSearchResults(data.data);
-        })
-        .catch(() => {});
-}
-
-function showSearchResults(results) {
-    const container = document.getElementById('search-results');
-    if (!results.length) {
-        container.innerHTML = '<div class="result-item">找不到結果</div>';
-        container.classList.remove('hidden');
-        return;
-    }
-
-    const levelNames = {1: '州/廳', 2: '郡/市', 3: '街庄/町'};
-    container.innerHTML = results.map(r => `
-        <div class="result-item" data-lon="${r.lon}" data-lat="${r.lat}">
-            <div class="name">${r.name}</div>
-            <div class="meta">${levelNames[r.level] || ''} · ${r.era_id}</div>
-        </div>
-    `).join('');
-    container.classList.remove('hidden');
-
-    // 點擊跳到該地點
-    container.querySelectorAll('.result-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const lon = parseFloat(item.dataset.lon);
-            const lat = parseFloat(item.dataset.lat);
-            if (!isNaN(lon) && !isNaN(lat)) {
-                mapLeft.setView([lat, lon], 13);
-                container.classList.add('hidden');
-            }
-        });
-    });
-}
-
-document.getElementById('search-btn').addEventListener('click', doSearch);
-document.getElementById('search-input').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') doSearch();
-});
-
-// 點擊地圖區域關閉搜尋結果
-document.getElementById('map-left').addEventListener('click', () => {
-    document.getElementById('search-results').classList.add('hidden');
-});
-document.getElementById('map-right').addEventListener('click', () => {
-    document.getElementById('search-results').classList.add('hidden');
-});
 
 // ── 分隔線拖曳調整寬度 ──
 (function() {

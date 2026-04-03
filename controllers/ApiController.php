@@ -93,8 +93,8 @@ class ApiController extends MiniEngine_Controller
 
         $rows = DB::query("
             SELECT id, era_id, level, name, name_kana,
-                   ST_X(ST_Centroid(geom)) AS lon,
-                   ST_Y(ST_Centroid(geom)) AS lat
+                   X(Centroid(geom)) AS lon,
+                   Y(Centroid(geom)) AS lat
             FROM admin_divisions
             WHERE name LIKE ? {$era_cond}
             ORDER BY era_id, level

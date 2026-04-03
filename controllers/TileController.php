@@ -138,11 +138,11 @@ class TileController extends MiniEngine_Controller
 
         $sql = "
             SELECT id, name,
-                   ST_AsGeoJSON(ST_Simplify(geom, {$simplify})) AS geojson
+                   AsGeoJSON(SimplifyPreserveTopology(geom, {$simplify})) AS geojson
             FROM admin_divisions
             WHERE era_id = '{$era}'
               AND level = {$level}
-              AND geom && {$mbr}
+              AND MbrIntersects(geom, {$mbr})
             LIMIT 500
         ";
 
@@ -173,10 +173,10 @@ class TileController extends MiniEngine_Controller
 
         $sql = "
             SELECT id, name,
-                   ST_AsGeoJSON(ST_Simplify(geom, {$simplify})) AS geojson
+                   AsGeoJSON(SimplifyPreserveTopology(geom, {$simplify})) AS geojson
             FROM roads
             WHERE era_id = '{$era}'
-              AND geom && {$mbr}
+              AND MbrIntersects(geom, {$mbr})
             LIMIT 1000
         ";
 

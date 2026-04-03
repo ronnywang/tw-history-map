@@ -50,8 +50,6 @@ const INIT_CENTER  = initView.center;
 const INIT_ZOOM    = initView.zoom;
 
 // ── 全域狀態 ──
-let currentEra     = 'jp_1920';
-let currentBasemap = 'JM50K_1920';
 let syncing        = false;   // 防止循環同步
 
 // ── 地圖初始化 ──
@@ -87,24 +85,25 @@ function buildSinicaLayer(layerId) {
 }
 
 function refreshRightLayers() {
-    // 移除舊圖層
     if (basemapLayer) { mapRight.removeLayer(basemapLayer); basemapLayer = null; }
 
-    // 底圖
-    const basemapId = document.getElementById('basemap-select').value;
-    if (basemapId && basemapId !== 'none') {
-        basemapLayer = buildSinicaLayer(basemapId);
-        basemapLayer.addTo(mapRight);
+    const layerId = document.getElementById('basemap-select').value;
+
+    if (layerId === 'hist1915') {
+        hist1915Visible = true;
+        document.getElementById('map-right-label').textContent = '1915 臺北廳廳區';
+    } else {
+        hist1915Visible = false;
+        if (layerId && layerId !== 'none') {
+            basemapLayer = buildSinicaLayer(layerId);
+            basemapLayer.addTo(mapRight);
+        }
+        const label = document.querySelector(`#basemap-select option[value="${layerId}"]`);
+        document.getElementById('map-right-label').textContent =
+            label ? label.textContent.trim() : '歷史地圖';
     }
 
-    // 更新右側標籤
-    const eraObj = window.ERAS.find(e => e.id === currentEra);
-    document.getElementById('map-right-label').textContent =
-        eraObj ? eraObj.name : currentEra;
-
-    // 更新狀態列
-    document.getElementById('current-era-info').textContent =
-        eraObj ? `目前時代：${eraObj.name}` : '';
+    update1915Layers();
 }
 
 // ── 地圖同步 ──
@@ -168,17 +167,10 @@ mapLeft.on('mousemove', onMouseMove);
 mapRight.on('mousemove', onMouseMove);
 
 
-// ── 時代選擇器 ──
-document.getElementById('era-select').addEventListener('change', (e) => {
-    currentEra = e.target.value;
-    refreshRightLayers();
-});
-
-// ── 底圖選擇器 ──
+// ── 圖層選擇器 ──
 document.getElementById('basemap-select').addEventListener('change', () => {
     refreshRightLayers();
 });
-
 
 
 // ── 分隔線拖曳調整寬度 ──
@@ -223,7 +215,7 @@ document.getElementById('basemap-select').addEventListener('change', () => {
 const ZOOM_SHITCHO = 11;   // zoom >= 11: 顯示支廳
 const ZOOM_KU      = 13;   // zoom >= 13: 顯示區
 
-let hist1915Visible  = true;
+let hist1915Visible  = false;
 let _shitchoPolygons = null;
 let _shitchoLabels   = null;
 let _kuPolygons      = null;
@@ -336,10 +328,6 @@ Promise.all([
 
 mapRight.on('zoomend', update1915Layers);
 
-document.getElementById('toggle-hist1915').addEventListener('change', (e) => {
-    hist1915Visible = e.target.checked;
-    update1915Layers();
-});
 
 // ── 初始化 ──
 refreshRightLayers();

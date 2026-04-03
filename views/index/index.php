@@ -61,6 +61,10 @@
                     <input type="checkbox" id="toggle-roads">
                     道路名稱
                 </label>
+                <label>
+                    <input type="checkbox" id="toggle-hist1915" checked>
+                    1915廳區
+                </label>
             </div>
 
             <!-- 搜尋框 -->

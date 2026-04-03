@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>1915 臺北廳 — Georeferencing 工具</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, 'Noto Sans TC', sans-serif; background: #1a1a2e; color: #eee; height: 100vh; display: flex; flex-direction: column; }
+
+#toolbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 14px; background: #16213e; border-bottom: 1px solid #0f3460;
+  flex-shrink: 0; flex-wrap: wrap;
+}
+#toolbar h1 { font-size: 14px; font-weight: 600; color: #e94560; white-space: nowrap; }
+#status { font-size: 12px; color: #aaa; }
+#step-hint { font-size: 12px; padding: 4px 10px; border-radius: 12px; background: #0f3460; color: #7ec8e3; white-space: nowrap; }
+button { font-size: 12px; padding: 5px 12px; border-radius: 4px; border: none; cursor: pointer; }
+#btn-export { background: #27ae60; color: white; }
+#btn-export:hover { background: #1e8449; }
+#btn-export:disabled { background: #555; color: #999; cursor: not-allowed; }
+#btn-undo { background: #e67e22; color: white; }
+#btn-undo:hover { background: #ca6f1e; }
+#btn-undo:disabled { background: #555; color: #999; cursor: not-allowed; }
+#btn-clear { background: #c0392b; color: white; }
+#btn-clear:hover { background: #a93226; }
+
+#main { display: flex; flex: 1; min-height: 0; }
+
+/* ── SVG panel ── */
+#svg-panel {
+  width: 50%; display: flex; flex-direction: column;
+  border-right: 3px solid #0f3460; position: relative;
+}
+#svg-label { padding: 6px 10px; font-size: 11px; color: #7ec8e3; background: #0f3460; flex-shrink: 0; }
+#svg-container {
+  flex: 1; overflow: hidden; position: relative; background: #111; cursor: crosshair;
+}
+#svg-container.panning { cursor: grabbing; }
+#svg-transform-wrapper {
+  position: absolute; top: 0; left: 0;
+  width: 100%; /* initial width = container width */
+  transform-origin: 0 0;
+}
+#svg-img { display: block; width: 100%; height: auto; user-select: none; pointer-events: none; }
+#svg-overlay {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; overflow: visible;
+}
+
+/* ── Map panel ── */
+#map-panel { width: 50%; display: flex; flex-direction: column; }
+#map-label { padding: 6px 10px; font-size: 11px; color: #7ec8e3; background: #0f3460; flex-shrink: 0; }
+#map { flex: 1; }
+
+/* ── GCP marker styles ── */
+.gcp-dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid white; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: bold; color: white;
+  box-shadow: 0 0 4px rgba(0,0,0,0.6);
+}
+.gcp-pending { background: #f39c12; border-color: #f1c40f; }
+.gcp-done    { background: #e74c3c; border-color: #ff6b6b; }
+
+/* ── GCP list at bottom ── */
+#gcp-list {
+  max-height: 130px; overflow-y: auto;
+  background: #16213e; border-top: 1px solid #0f3460;
+  font-size: 11px; flex-shrink: 0;
+}
+#gcp-list table { width: 100%; border-collapse: collapse; }
+#gcp-list th { padding: 4px 8px; background: #0f3460; color: #7ec8e3; text-align: left; position: sticky; top: 0; }
+#gcp-list td { padding: 3px 8px; border-bottom: 1px solid #0f3460; }
+#gcp-list tr:hover td { background: #0f3460; }
+.del-btn { background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 13px; padding: 0 4px; }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <h1>🗺 1915 臺北廳 Georeferencing 工具</h1>
+  <span id="step-hint">① 在左邊歷史地圖點一個特徵點</span>
+  <span id="status">GCP: 0 個（需至少 4 個才能做仿射變換）</span>
+  <button id="btn-undo" disabled>↩ 撤銷上一步</button>
+  <button id="btn-export" disabled>⬇ 匯出 GCPs JSON</button>
+  <label style="font-size:12px;padding:5px 12px;border-radius:4px;background:#8e44ad;color:white;cursor:pointer;">
+    📂 載入 GCPs JSON<input type="file" id="btn-import" accept=".json" style="display:none"/>
+  </label>
+  <button id="btn-reset-zoom">🔍 重設縮放</button>
+  <button id="btn-clear">🗑 清除全部</button>
+</div>
+
+<div id="main">
+  <div id="svg-panel">
+    <div id="svg-label">歷史地圖（1915 臺北廳）— 點擊設定控制點</div>
+    <div id="svg-container">
+      <div id="svg-transform-wrapper">
+        <img id="svg-img" src="/1915_Taihoku_Cho.svg" draggable="false"/>
+        <svg id="svg-overlay" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+    </div>
+  </div>
+  <div id="map-panel">
+    <div id="map-label">現代地圖（OSM）— 點擊設定對應位置</div>
+    <div id="map"></div>
+  </div>
+</div>
+
+<div id="gcp-list">
+  <table>
+    <thead><tr>
+      <th>#</th><th>標籤</th>
+      <th>SVG X</th><th>SVG Y</th>
+      <th>經度 (Lon)</th><th>緯度 (Lat)</th>
+      <th></th>
+    </tr></thead>
+    <tbody id="gcp-tbody"></tbody>
+  </table>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+'use strict';
+
+// ── 狀態 ──
+const gcps = [];           // [{svgX, svgY, lon, lat, label}, ...]
+let pendingSvg = null;     // {svgX, svgY, markerEl} — 等待地圖點擊
+let svgNaturalW = 1200;    // SVG 原始寬度
+let svgNaturalH = 800;     // SVG 原始高度
+
+// ── zoom/pan 狀態 ──
+let svgScale  = 1;
+let svgTransX = 0;
+let svgTransY = 0;
+
+const svgWrapper   = document.getElementById('svg-transform-wrapper');
+
+// ── Leaflet 初始化 ──
+const map = L.map('map', { center: [25.046, 121.517], zoom: 11 });
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors', maxZoom: 19
+}).addTo(map);
+
+// 也加上中研院日治地圖作為可切換底圖
+const sinicaLayer = L.tileLayer(
+  'https://gis.sinica.edu.tw/tileserver/file-exists.php?img=JM50K_1920-png-{z}-{x}-{y}',
+  { attribution: '© 中央研究院', maxZoom: 19, opacity: 0.7 }
+);
+L.control.layers(
+  { 'OSM 現代': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM',maxZoom:19}).addTo(map) },
+  { '中研院 1920年代': sinicaLayer }
+).addTo(map);
+
+// ── SVG 容器與 zoom/pan ──
+const svgImg       = document.getElementById('svg-img');
+const svgOverlay   = document.getElementById('svg-overlay');
+const svgContainer = document.getElementById('svg-container');
+
+svgImg.addEventListener('load', () => {
+  svgNaturalW = svgImg.naturalWidth  || 1200;
+  svgNaturalH = svgImg.naturalHeight || 800;
+});
+
+function applyTransform() {
+  svgWrapper.style.transform = `translate(${svgTransX}px,${svgTransY}px) scale(${svgScale})`;
+}
+
+// 滾輪縮放（以滑鼠為中心）
+svgContainer.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const rect  = svgContainer.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+  const factor = e.deltaY < 0 ? 1.25 : 1 / 1.25;
+  svgTransX = mouseX - factor * (mouseX - svgTransX);
+  svgTransY = mouseY - factor * (mouseY - svgTransY);
+  svgScale *= factor;
+  applyTransform();
+}, { passive: false });
+
+// 拖曳平移（左鍵拖）
+let panStart   = null;   // { clientX, clientY, tx, ty }
+let hasDragged = false;
+
+svgContainer.addEventListener('mousedown', (e) => {
+  if (e.button !== 0) return;
+  panStart   = { clientX: e.clientX, clientY: e.clientY, tx: svgTransX, ty: svgTransY };
+  hasDragged = false;
+  e.preventDefault();
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!panStart) return;
+  const dx = e.clientX - panStart.clientX;
+  const dy = e.clientY - panStart.clientY;
+  if (!hasDragged && Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+  hasDragged = true;
+  svgContainer.classList.add('panning');
+  svgTransX = panStart.tx + dx;
+  svgTransY = panStart.ty + dy;
+  applyTransform();
+});
+
+document.addEventListener('mouseup', () => {
+  panStart = null;
+  svgContainer.classList.remove('panning');
+});
+
+// 重設縮放
+document.getElementById('btn-reset-zoom').addEventListener('click', () => {
+  svgScale = 1; svgTransX = 0; svgTransY = 0;
+  applyTransform();
+});
+
+// ── 將 container 像素座標轉換為 SVG 原始座標 ──
+// container 內座標 (cx, cy) → wrapper 內座標 (wx, wy) → SVG 座標
+function containerToSvgCoords(clientX, clientY) {
+  const rect = svgContainer.getBoundingClientRect();
+  const cx = clientX - rect.left;
+  const cy = clientY - rect.top;
+  const wx = (cx - svgTransX) / svgScale;
+  const wy = (cy - svgTransY) / svgScale;
+  const imgCssW = svgContainer.clientWidth;   // wrapper 未縮放時的寬度
+  const imgCssH = imgCssW * svgNaturalH / svgNaturalW;
+  return {
+    svgX: Math.round(wx * svgNaturalW / imgCssW),
+    svgY: Math.round(wy * svgNaturalH / imgCssH),
+    wx, wy,   // wrapper 內 CSS 像素（供 overlay 定位用）
+  };
+}
+
+// ── SVG 容器點擊 ──
+svgContainer.addEventListener('click', (e) => {
+  if (hasDragged) return;   // 拖曳結束不觸發 click
+
+  const { svgX, svgY, wx, wy } = containerToSvgCoords(e.clientX, e.clientY);
+
+  clearPendingMarker();
+
+  const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  circle.setAttribute('cx', wx);
+  circle.setAttribute('cy', wy);
+  circle.setAttribute('r', 8 / svgScale);     // 讓圓點視覺大小固定
+  circle.setAttribute('fill','rgba(243,156,18,0.85)');
+  circle.setAttribute('stroke','white');
+  circle.setAttribute('stroke-width', 2 / svgScale);
+  const num = document.createElementNS('http://www.w3.org/2000/svg','text');
+  num.setAttribute('x', wx + 11 / svgScale);
+  num.setAttribute('y', wy + 4 / svgScale);
+  num.setAttribute('fill','#f39c12');
+  num.setAttribute('font-size', 12 / svgScale);
+  num.setAttribute('font-weight','bold');
+  num.textContent = '?';
+  svgOverlay.appendChild(circle);
+  svgOverlay.appendChild(num);
+
+  pendingSvg = { svgX, svgY, wx, wy, circle, num };
+  setStepHint('② 現在在右邊現代地圖點對應的位置');
+});
+
+// ── 地圖點擊 ──
+const mapMarkers = [];  // Leaflet markers
+
+map.on('click', (e) => {
+  if (!pendingSvg) {
+    setStepHint('① 先在左邊歷史地圖點一個特徵點');
+    return;
+  }
+  const { lat, lng } = e.latlng;
+  const idx = gcps.length + 1;
+
+  // 問標籤
+  const label = prompt(`第 ${idx} 個控制點，請輸入這個地點的名稱（可省略）：`, `GCP-${idx}`) ?? `GCP-${idx}`;
+
+  // 確認 SVG marker → 變紅
+  pendingSvg.circle.setAttribute('fill','rgba(231,76,60,0.9)');
+  pendingSvg.num.textContent = idx;
+  pendingSvg.num.setAttribute('fill','#e74c3c');
+
+  // Leaflet marker
+  const icon = L.divIcon({
+    className: '',
+    html: `<div class="gcp-dot gcp-done">${idx}</div>`,
+    iconSize: [22,22], iconAnchor: [11,11]
+  });
+  const marker = L.marker([lat, lng], { icon }).addTo(map);
+  marker.bindTooltip(`${idx}: ${label}`);
+  mapMarkers.push(marker);
+
+  gcps.push({ svgX: pendingSvg.svgX, svgY: pendingSvg.svgY, lon: lng, lat, label,
+               _circle: pendingSvg.circle, _num: pendingSvg.num, _marker: marker });
+  pendingSvg = null;
+
+  updateUI();
+  setStepHint('① 在左邊歷史地圖點下一個特徵點');
+});
+
+// ── 撤銷 ──
+document.getElementById('btn-undo').addEventListener('click', () => {
+  clearPendingMarker();
+  if (!gcps.length) return;
+  const last = gcps.pop();
+  svgOverlay.removeChild(last._circle);
+  svgOverlay.removeChild(last._num);
+  map.removeLayer(last._marker);
+  updateUI();
+});
+
+// ── 載入現有 GCPs ──
+document.getElementById('btn-import').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        let data;
+        try { data = JSON.parse(ev.target.result); } catch { alert('JSON 格式錯誤'); return; }
+        data.forEach((g) => {
+            const idx = gcps.length + 1;
+            const label = g.label || `GCP-${idx}`;
+
+            // 在 SVG overlay 畫點（換算到 wrapper 未縮放的 CSS 像素）
+            const imgCssW = svgContainer.clientWidth;
+            const imgCssH = imgCssW * svgNaturalH / svgNaturalW;
+            const dispX = g.svgX / svgNaturalW * imgCssW;
+            const dispY = g.svgY / svgNaturalH * imgCssH;
+            const s = 1 / svgScale;   // 補償縮放，讓標記視覺固定大小
+            const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+            circle.setAttribute('cx', dispX); circle.setAttribute('cy', dispY);
+            circle.setAttribute('r', 8*s); circle.setAttribute('fill','rgba(231,76,60,0.9)');
+            circle.setAttribute('stroke','white'); circle.setAttribute('stroke-width', 2*s);
+            const num = document.createElementNS('http://www.w3.org/2000/svg','text');
+            num.setAttribute('x', dispX + 11*s); num.setAttribute('y', dispY + 4*s);
+            num.setAttribute('fill','#e74c3c'); num.setAttribute('font-size', 12*s);
+            num.setAttribute('font-weight','bold'); num.textContent = idx;
+            svgOverlay.appendChild(circle); svgOverlay.appendChild(num);
+
+            // Leaflet marker
+            const icon = L.divIcon({ className:'', html:`<div class="gcp-dot gcp-done">${idx}</div>`, iconSize:[22,22], iconAnchor:[11,11] });
+            const marker = L.marker([g.lat, g.lon], { icon }).addTo(map);
+            marker.bindTooltip(`${idx}: ${label}`);
+
+            gcps.push({ svgX: g.svgX, svgY: g.svgY, lon: g.lon, lat: g.lat, label,
+                        _circle: circle, _num: num, _marker: marker });
+        });
+        updateUI();
+        setStepHint(`✅ 已載入 ${data.length} 個 GCP，繼續補點或直接匯出`);
+        e.target.value = '';
+    };
+    reader.readAsText(file);
+});
+
+// ── 清除 ──
+document.getElementById('btn-clear').addEventListener('click', () => {
+  if (!confirm('確定清除所有 GCP？')) return;
+  clearPendingMarker();
+  gcps.forEach(g => {
+    try { svgOverlay.removeChild(g._circle); } catch(e){}
+    try { svgOverlay.removeChild(g._num);    } catch(e){}
+    map.removeLayer(g._marker);
+  });
+  gcps.length = 0;
+  updateUI();
+});
+
+// ── 匯出 ──
+document.getElementById('btn-export').addEventListener('click', () => {
+  const data = gcps.map(({svgX, svgY, lon, lat, label}) => ({svgX, svgY, lon, lat, label}));
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '1915_taihoku_gcps.json';
+  a.click();
+});
+
+// ── 輔助函式 ──
+function clearPendingMarker() {
+  if (!pendingSvg) return;
+  try { svgOverlay.removeChild(pendingSvg.circle); } catch(e){}
+  try { svgOverlay.removeChild(pendingSvg.num);    } catch(e){}
+  pendingSvg = null;
+  setStepHint('① 在左邊歷史地圖點一個特徵點');
+}
+
+function setStepHint(msg) {
+  document.getElementById('step-hint').textContent = msg;
+}
+
+function updateUI() {
+  const n = gcps.length;
+  document.getElementById('status').textContent =
+    `GCP: ${n} 個（${n >= 4 ? '✅ 可以匯出做轉換了' : `還需要 ${4-n} 個`}）`;
+  document.getElementById('btn-export').disabled = n < 4;
+  document.getElementById('btn-undo').disabled   = n === 0;
+
+  // 更新列表
+  const tbody = document.getElementById('gcp-tbody');
+  tbody.innerHTML = gcps.map((g, i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td>${g.label}</td>
+      <td>${g.svgX}</td>
+      <td>${g.svgY}</td>
+      <td>${g.lon.toFixed(5)}</td>
+      <td>${g.lat.toFixed(5)}</td>
+      <td><button class="del-btn" data-i="${i}">✕</button></td>
+    </tr>
+  `).join('');
+
+  tbody.querySelectorAll('.del-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = parseInt(btn.dataset.i);
+      const g = gcps[i];
+      try { svgOverlay.removeChild(g._circle); } catch(e){}
+      try { svgOverlay.removeChild(g._num);    } catch(e){}
+      map.removeLayer(g._marker);
+      gcps.splice(i, 1);
+      // 重新編號 overlay 文字
+      gcps.forEach((g2, j) => { g2._num.textContent = j+1; });
+      mapMarkers.splice(i, 1);
+      updateUI();
+    });
+  });
+}
+</script>
+</body>
+</html>

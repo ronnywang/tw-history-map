@@ -298,3 +298,37 @@ html, body {
     transform: translate(-50%, -50%);
     box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
 }
+
+/* ── 1915 行政區標籤 ── */
+.hist-label {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    pointer-events: none;
+    white-space: nowrap;
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans TC', sans-serif;
+    color: #1a1a1a;
+    text-shadow:
+        -1px -1px 0 rgba(255,255,255,0.85),
+         1px -1px 0 rgba(255,255,255,0.85),
+        -1px  1px 0 rgba(255,255,255,0.85),
+         1px  1px 0 rgba(255,255,255,0.85);
+}
+
+.hist-cho-label {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+}
+
+.hist-shitcho-label {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.hist-ku-label {
+    font-size: 11px;
+    font-weight: 400;
+    color: #333;
+}

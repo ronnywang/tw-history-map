@@ -315,5 +315,127 @@ document.getElementById('map-right').addEventListener('click', () => {
     });
 })();
 
+// ── 1915 臺北廳行政區 GeoJSON 圖層 ──────────────────────────────────────────
+const ZOOM_SHITCHO = 11;   // zoom >= 11: 顯示支廳
+const ZOOM_KU      = 13;   // zoom >= 13: 顯示區
+
+let hist1915Visible  = true;
+let _shitchoPolygons = null;
+let _shitchoLabels   = null;
+let _kuPolygons      = null;
+let _kuLabels        = null;
+let _choMarker       = null;
+
+function polygonCentroid(feature) {
+    const rings = feature.geometry.type === 'Polygon'
+        ? feature.geometry.coordinates
+        : feature.geometry.coordinates[0];
+    const ring = rings[0];
+    let sumLon = 0, sumLat = 0;
+    for (const pt of ring) { sumLon += pt[0]; sumLat += pt[1]; }
+    return [sumLat / ring.length, sumLon / ring.length];
+}
+
+function makeLabels(data, cssClass) {
+    const markers = [];
+    for (const feat of data.features) {
+        const [lat, lon] = polygonCentroid(feat);
+        markers.push(L.marker([lat, lon], {
+            icon: L.divIcon({
+                className: cssClass,
+                html: feat.properties.name,
+                iconSize: null,
+                iconAnchor: null,
+            }),
+            interactive: false,
+        }));
+    }
+    return L.featureGroup(markers);
+}
+
+function update1915Layers() {
+    if (!_shitchoPolygons) return;
+    const z = mapRight.getZoom();
+
+    [_shitchoPolygons, _shitchoLabels, _kuPolygons, _kuLabels, _choMarker].forEach(l => {
+        if (l && mapRight.hasLayer(l)) mapRight.removeLayer(l);
+    });
+
+    if (!hist1915Visible) return;
+
+    if (z < ZOOM_SHITCHO) {
+        _shitchoPolygons.eachLayer(l => l.setStyle({ fillOpacity: 0.12, color: '#555', weight: 1 }));
+        _shitchoPolygons.addTo(mapRight);
+        _choMarker.addTo(mapRight);
+
+    } else if (z < ZOOM_KU) {
+        _shitchoPolygons.eachLayer(l => l.setStyle({
+            fillColor:   l.feature.properties.fill,
+            fillOpacity: 0.38,
+            color:       '#444',
+            weight:      1.5,
+        }));
+        _shitchoPolygons.addTo(mapRight);
+        _shitchoLabels.addTo(mapRight);
+
+    } else {
+        _shitchoPolygons.eachLayer(l => l.setStyle({ fillOpacity: 0, color: '#333', weight: 2 }));
+        _shitchoPolygons.addTo(mapRight);
+        _kuPolygons.addTo(mapRight);
+        _kuLabels.addTo(mapRight);
+    }
+}
+
+function init1915Layers(shitchoData, kuData) {
+    _shitchoPolygons = L.geoJSON(shitchoData, {
+        style: (feat) => ({
+            fillColor:   feat.properties.fill,
+            fillOpacity: 0.38,
+            color:       '#444',
+            weight:      1.5,
+        }),
+    });
+    _shitchoLabels = makeLabels(shitchoData, 'hist-label hist-shitcho-label');
+
+    _kuPolygons = L.geoJSON(kuData, {
+        style: (feat) => ({
+            fillColor:   feat.properties.fill,
+            fillOpacity: 0.22,
+            color:       '#666',
+            weight:      0.8,
+        }),
+    });
+    _kuLabels = makeLabels(kuData, 'hist-label hist-ku-label');
+
+    const allCoords = shitchoData.features.flatMap(f =>
+        (f.geometry.type === 'Polygon' ? f.geometry.coordinates : f.geometry.coordinates[0])[0]
+    );
+    const centerLat = allCoords.reduce((s, c) => s + c[1], 0) / allCoords.length;
+    const centerLon = allCoords.reduce((s, c) => s + c[0], 0) / allCoords.length;
+    _choMarker = L.marker([centerLat, centerLon], {
+        icon: L.divIcon({
+            className: 'hist-label hist-cho-label',
+            html: '臺北廳',
+            iconSize: null,
+            iconAnchor: null,
+        }),
+        interactive: false,
+    });
+
+    update1915Layers();
+}
+
+Promise.all([
+    fetch('/static/1915_Taihoku_Shitcho.geojson').then(r => r.json()),
+    fetch('/static/1915_Taihoku_Ku.geojson').then(r => r.json()),
+]).then(([shitcho, ku]) => init1915Layers(shitcho, ku));
+
+mapRight.on('zoomend', update1915Layers);
+
+document.getElementById('toggle-hist1915').addEventListener('change', (e) => {
+    hist1915Visible = e.target.checked;
+    update1915Layers();
+});
+
 // ── 初始化 ──
 refreshRightLayers();

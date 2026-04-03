@@ -1,10 +1,25 @@
 <?php
 // PHP 內建伺服器：靜態檔案直接回傳，不經 routing
 if (php_sapi_name() === 'cli-server') {
-    $file = __DIR__ . $_SERVER['REQUEST_URI'];
-    $file = strtok($file, '?');  // 去掉 query string
-    if (is_file($file)) {
-        return false;
+    $uri  = strtok($_SERVER['REQUEST_URI'], '?');
+    // 先查根目錄，再查 static/ 子目錄
+    foreach ([__DIR__ . $uri, __DIR__ . '/static' . $uri] as $file) {
+        if (is_file($file)) {
+            // 設定正確的 Content-Type
+            $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+            $mime = [
+                'html' => 'text/html',
+                'svg'  => 'image/svg+xml',
+                'css'  => 'text/css',
+                'js'   => 'application/javascript',
+                'png'  => 'image/png',
+                'jpg'  => 'image/jpeg',
+                'json' => 'application/json',
+            ][$ext] ?? 'application/octet-stream';
+            header("Content-Type: $mime");
+            readfile($file);
+            exit;
+        }
     }
 }
 

@@ -2,8 +2,13 @@
 
 // ── 中研院 tile URL（Access-Control-Allow-Origin: *，可直接從瀏覽器存取）
 // {x}=TILECOL, {y}=TILEROW
-const SINICA_WMTS = (layerId) =>
-    `https://gis.sinica.edu.tw/tileserver/file-exists.php?img=${layerId}-png-{z}-{x}-{y}`;
+// jpg 格式的圖層（堡圖、部分日治地形圖）
+const SINICA_JPG_LAYERS = new Set(['JM20K_1904', 'JM50K_1924']);
+
+const SINICA_WMTS = (layerId) => {
+    const fmt = SINICA_JPG_LAYERS.has(layerId) ? 'jpg' : 'png';
+    return `https://gis.sinica.edu.tw/tileserver/file-exists.php?img=${layerId}-${fmt}-{z}-{x}-{y}`;
+};
 
 // ── 自有 tile server URL ──
 const ADMIN_TILE = (era) => `/tile/${era}/{z}/{x}/{y}`;

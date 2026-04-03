@@ -42,12 +42,18 @@
                 <select id="basemap-select">
                     <option value="none">無底圖</option>
                     <option value="JM20K_1904">明治堡圖 (1904)</option>
-                    <option value="JM50K_1920" selected>日治地形圖 (1920)</option>
-                    <option value="TM25K_1921">台灣地形圖 (1921)</option>
-                    <option value="TM50K_1924">台灣地形圖 (1924)</option>
-                    <option value="TW50K_1955">五萬分一地形圖 (1955)</option>
-                    <option value="TM25K_1975">地形圖 (1975)</option>
-                    <option value="TM25K_2000">地形圖 (2000)</option>
+                    <option value="JM25K_1921">日治地形圖 1:25000 (1921)</option>
+                    <option value="JM50K_1920" selected>日治地形圖 1:50000 (1920)</option>
+                    <option value="JM50K_1924">日治地形圖 1:50000 (1924)</option>
+                    <option value="AM25K_1944A">美軍地形圖 (1944)</option>
+                    <option value="AMCityPlan_1945">美軍城市計畫圖 (1945)</option>
+                    <option value="TM25K_1950">地形圖 (1950)</option>
+                    <option value="TM50K_1954">地形圖 1:50000 (1954)</option>
+                    <option value="TM25K_1955">地形圖 (1955)</option>
+                    <option value="TM25K_1966">地形圖 (1966)</option>
+                    <option value="TM50K_1966">地形圖 1:50000 (1966)</option>
+                    <option value="TM50K_1990">地形圖 1:50000 (1990)</option>
+                    <option value="TM50K_1996">地形圖 1:50000 (1996)</option>
                 </select>
             </div>
 

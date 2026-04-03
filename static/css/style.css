@@ -257,3 +257,44 @@ html, body {
 .hidden {
     display: none !important;
 }
+
+/* ── 對位準心（滑鼠移動時顯示在對側地圖） ── */
+.map-crosshair {
+    position: absolute;
+    pointer-events: none;
+    z-index: 450;
+    display: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(231, 76, 60, 0.9);
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    transform: translate(-50%, -50%);
+}
+
+/* 水平線 */
+.map-crosshair::before {
+    content: '';
+    position: absolute;
+    width: 28px;
+    height: 2px;
+    background: rgba(231, 76, 60, 0.85);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+/* 垂直線 */
+.map-crosshair::after {
+    content: '';
+    position: absolute;
+    width: 2px;
+    height: 28px;
+    background: rgba(231, 76, 60, 0.85);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+}

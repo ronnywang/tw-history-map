@@ -136,6 +136,27 @@ mapRight.on('zoomend', () => syncMaps(mapRight, mapLeft));
 mapLeft.on('move',    updateHash);
 mapLeft.on('zoomend', updateHash);
 
+// ── 對位準心：在對側地圖顯示對應的地理位置 ──
+const crosshairLeft  = document.createElement('div');
+crosshairLeft.className = 'map-crosshair';
+document.getElementById('map-left').appendChild(crosshairLeft);
+
+const crosshairRight = document.createElement('div');
+crosshairRight.className = 'map-crosshair';
+document.getElementById('map-right').appendChild(crosshairRight);
+
+function moveCrosshair(crosshair, targetMap, latlng) {
+    const pt = targetMap.latLngToContainerPoint(latlng);
+    crosshair.style.left    = pt.x + 'px';
+    crosshair.style.top     = pt.y + 'px';
+    crosshair.style.display = 'block';
+}
+
+mapLeft.on('mousemove', (e) => moveCrosshair(crosshairRight, mapRight, e.latlng));
+mapLeft.on('mouseout',  ()  => { crosshairRight.style.display = 'none'; });
+mapRight.on('mousemove', (e) => moveCrosshair(crosshairLeft, mapLeft, e.latlng));
+mapRight.on('mouseout',  ()  => { crosshairLeft.style.display = 'none'; });
+
 // ── 座標顯示 ──
 function onMouseMove(e) {
     const { lat, lng } = e.latlng;

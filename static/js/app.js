@@ -8,9 +8,26 @@ const SINICA_WMTS = (layerId) =>
 // ── 自有 tile server URL ──
 const ADMIN_TILE = (era) => `/tile/${era}/{z}/{x}/{y}`;
 
-// ── 初始視角：台北城（清代台北府城 / 日治台北市中心）
-const INIT_CENTER = [25.046, 121.517];
-const INIT_ZOOM   = 14;
+// ── 從 URL hash 讀取初始視角（格式：#z/lat/lon）
+// 若沒有 hash，預設台北城（清代台北府城 / 日治台北市中心）
+function parseHashView() {
+    const hash = location.hash.replace('#', '');
+    const parts = hash.split('/');
+    if (parts.length === 3) {
+        const z   = parseInt(parts[0], 10);
+        const lat = parseFloat(parts[1]);
+        const lon = parseFloat(parts[2]);
+        if (!isNaN(z) && !isNaN(lat) && !isNaN(lon)) {
+            return { center: [lat, lon], zoom: z };
+        }
+    }
+    return null;
+}
+
+const DEFAULT_VIEW = { center: [25.046, 121.517], zoom: 14 };
+const initView     = parseHashView() || DEFAULT_VIEW;
+const INIT_CENTER  = initView.center;
+const INIT_ZOOM    = initView.zoom;
 
 // ── 全域狀態 ──
 let currentEra     = 'jp_1920';
@@ -97,10 +114,27 @@ function syncMaps(source, target) {
     syncing = false;
 }
 
+// ── 更新 URL hash（節流，避免更新過於頻繁）
+let hashUpdateTimer = null;
+function updateHash() {
+    clearTimeout(hashUpdateTimer);
+    hashUpdateTimer = setTimeout(() => {
+        const c = mapLeft.getCenter();
+        const z = mapLeft.getZoom();
+        const lat = c.lat.toFixed(5);
+        const lon = c.lng.toFixed(5);
+        history.replaceState(null, '', `#${z}/${lat}/${lon}`);
+    }, 300);
+}
+
 mapLeft.on('move',    () => syncMaps(mapLeft, mapRight));
 mapLeft.on('zoomend', () => syncMaps(mapLeft, mapRight));
 mapRight.on('move',    () => syncMaps(mapRight, mapLeft));
 mapRight.on('zoomend', () => syncMaps(mapRight, mapLeft));
+
+// move / zoomend 都觸發 hash 更新
+mapLeft.on('move',    updateHash);
+mapLeft.on('zoomend', updateHash);
 
 // ── 座標顯示 ──
 function onMouseMove(e) {

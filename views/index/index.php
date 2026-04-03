@@ -60,10 +60,6 @@
             <!-- 疊加層控制 -->
             <div class="control-group">
                 <label>
-                    <input type="checkbox" id="toggle-admin" checked>
-                    行政區劃
-                </label>
-                <label>
                     <input type="checkbox" id="toggle-hist1915" checked>
                     1915廳區
                 </label>

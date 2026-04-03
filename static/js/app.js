@@ -27,8 +27,6 @@ const SINICA_WMTS = (layerId) => {
     return `https://gis.sinica.edu.tw/tileserver/file-exists.php?img=${layerId}-${fmt}-{z}-{x}-{y}`;
 };
 
-// ── 自有 tile server URL ──
-const ADMIN_TILE = (era) => `/tile/${era}/{z}/{x}/{y}`;
 
 // ── 從 URL hash 讀取初始視角（格式：#z/lat/lon）
 // 若沒有 hash，預設台北城（清代台北府城 / 日治台北市中心）
@@ -54,7 +52,6 @@ const INIT_ZOOM    = initView.zoom;
 // ── 全域狀態 ──
 let currentEra     = 'jp_1920';
 let currentBasemap = 'JM50K_1920';
-let showAdmin      = true;
 let syncing        = false;   // 防止循環同步
 
 // ── 地圖初始化 ──
@@ -78,17 +75,6 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 // ── 右側圖層管理 ──
 let basemapLayer = null;
-let adminLayer   = null;
-
-function buildAdminTileLayer(era) {
-    return L.tileLayer(ADMIN_TILE(era), {
-        opacity: 0.85,
-        maxZoom: 19,
-        tileSize: 256,
-        // 不快取，讓 tile server 的 Cache-Control 決定
-        updateWhenIdle: false,
-    });
-}
 
 function buildSinicaLayer(layerId) {
     if (!layerId || layerId === 'none') return null;
@@ -103,19 +89,12 @@ function buildSinicaLayer(layerId) {
 function refreshRightLayers() {
     // 移除舊圖層
     if (basemapLayer) { mapRight.removeLayer(basemapLayer); basemapLayer = null; }
-    if (adminLayer)   { mapRight.removeLayer(adminLayer);   adminLayer   = null; }
 
     // 底圖
     const basemapId = document.getElementById('basemap-select').value;
     if (basemapId && basemapId !== 'none') {
         basemapLayer = buildSinicaLayer(basemapId);
         basemapLayer.addTo(mapRight);
-    }
-
-    // 行政區劃疊加層
-    if (showAdmin) {
-        adminLayer = buildAdminTileLayer(currentEra);
-        adminLayer.addTo(mapRight);
     }
 
     // 更新右側標籤
@@ -200,11 +179,6 @@ document.getElementById('basemap-select').addEventListener('change', () => {
     refreshRightLayers();
 });
 
-// ── 圖層開關 ──
-document.getElementById('toggle-admin').addEventListener('change', (e) => {
-    showAdmin = e.target.checked;
-    refreshRightLayers();
-});
 
 
 // ── 分隔線拖曳調整寬度 ──

@@ -5,6 +5,23 @@
 // jpg 格式的圖層（堡圖、部分日治地形圖）
 const SINICA_JPG_LAYERS = new Set(['JM20K_1904', 'JM50K_1924']);
 
+// 各圖層的 maxNativeZoom（超過後 Leaflet 自動放大最細 tile）
+const SINICA_MAX_NATIVE_ZOOM = {
+    'JM20K_1904':    18,
+    'JM25K_1921':    18,
+    'JM50K_1920':    18,
+    'JM50K_1924':    18,
+    'AM25K_1944A':   15,
+    'AMCityPlan_1945': 18,
+    'TM25K_1950':    17,
+    'TM50K_1954':    15,
+    'TM25K_1955':    15,
+    'TM25K_1966':    15,
+    'TM50K_1966':    15,
+    'TM50K_1990':    18,
+    'TM50K_1996':    18,
+};
+
 const SINICA_WMTS = (layerId) => {
     const fmt = SINICA_JPG_LAYERS.has(layerId) ? 'jpg' : 'png';
     return `https://gis.sinica.edu.tw/tileserver/file-exists.php?img=${layerId}-${fmt}-{z}-{x}-{y}`;
@@ -80,6 +97,7 @@ function buildSinicaLayer(layerId) {
         attribution: '© <a href="https://gis.sinica.edu.tw/">中央研究院人文社會科學研究中心地理資訊科學研究專題中心</a>',
         opacity: 0.85,
         maxZoom: 19,
+        maxNativeZoom: SINICA_MAX_NATIVE_ZOOM[layerId] ?? 18,
     });
 }
 

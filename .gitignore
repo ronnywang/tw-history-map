@@ -1,0 +1,13 @@
+config.inc.php
+.*.swp
+.prompt_history
+
+# 資料庫與快取（不進 repo）
+data/taiwan.db
+data/tile_cache/
+
+# Claude Code 本機設定
+.claude/
+
+# Composer 安裝的套件（目前未使用）
+vendor/

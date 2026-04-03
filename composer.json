@@ -1,0 +1,22 @@
+{
+    "name": "tw-history-map/tw-history-map",
+    "description": "Taiwan Historical Map Service",
+    "type": "project",
+    "require": {
+        "php": ">=8.0",
+        "openfunltd/mini-engine": "dev-main"
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/openfunltd/mini-engine"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "TwHistoryMap\\": "src/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

@@ -292,17 +292,17 @@ const LAYER_BBOX = {
 };
 
 
-// ── 從 URL hash 讀取初始視角（格式：#z/lat/lon）
+// ── 從 URL hash 讀取初始視角（格式：#z/lat/lon/layerId）
 // 若沒有 hash，預設台北城（清代台北府城 / 日治台北市中心）
 function parseHashView() {
     const hash = location.hash.replace('#', '');
     const parts = hash.split('/');
-    if (parts.length === 3) {
+    if (parts.length >= 3) {
         const z   = parseInt(parts[0], 10);
         const lat = parseFloat(parts[1]);
         const lon = parseFloat(parts[2]);
         if (!isNaN(z) && !isNaN(lat) && !isNaN(lon)) {
-            return { center: [lat, lon], zoom: z };
+            return { center: [lat, lon], zoom: z, layer: parts[3] || null };
         }
     }
     return null;
@@ -430,7 +430,8 @@ function updateHash() {
         const z = mapLeft.getZoom();
         const lat = c.lat.toFixed(5);
         const lon = c.lng.toFixed(5);
-        history.replaceState(null, '', `#${z}/${lat}/${lon}`);
+        const layer = document.getElementById('basemap-select').value;
+        history.replaceState(null, '', `#${z}/${lat}/${lon}/${layer}`);
     }, 300);
 }
 
@@ -637,8 +638,15 @@ Promise.all([
 mapRight.on('zoomend', update1915Layers);
 
 
-// ── 初始化 ──
+// ── 初始化：從 hash 還原圖層 ──
+if (initView.layer) {
+    const selectEl = document.getElementById('basemap-select');
+    if (selectEl.querySelector(`option[value="${initView.layer}"]`)) {
+        selectEl.value = initView.layer;
+    }
+}
 refreshRightLayers();
+updateHash();  // 確保 hash 包含圖層（例如 hash 中沒有 layer 段時補上預設值）
 
 // ── 自製下拉選單（取代原生 select，讓超出範圍效果更明顯）──
 (function initCustomSelect() {

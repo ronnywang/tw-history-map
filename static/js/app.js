@@ -10,6 +10,8 @@ const SINICA_JPG_LAYERS = new Set([
     'TM25K_1989', 'TM25K_1993', 'TM25K_2001', 'TM25K_2003',
     // 臺北
     'Taipei_10K_1962', 'Taipei_10K_1966',
+    // 台南
+    'Tainan_1936',
 ]);
 
 // 各圖層對應的 tileserver 子域（不在此 map 中的使用預設 'tileserver'）
@@ -53,6 +55,11 @@ const LAYER_REGION = {
     'Kaohsiung_6K_1922': 'kaohsiung', 'Kaohsiung_10K_1926': 'kaohsiung',
     'Kaohsiung_10K_1936': 'kaohsiung', 'Kaohsiung_10K_1946': 'kaohsiung',
     'Kaohsiung_10K_1965': 'kaohsiung', 'Kaohsiung_10K_1980': 'kaohsiung',
+    // ── 台南 ──
+    'Tainan_1875': 'tainan', 'Tainan_20K_1917': 'tainan',
+    'Tainan_1935': 'tainan', 'Tainan_1936': 'tainan',
+    'Tainan_1943': 'tainan', 'Tainan_1966': 'tainan',
+    'Tainan_1996': 'tainan',
     // ── 屏東 ──
     'Pingtung_6K_1912': 'pingtung', 'Pingtung_6K_1930': 'pingtung',
     'Pingtung_10K_1939': 'pingtung', 'Pingtung_10K_1976': 'pingtung',
@@ -133,6 +140,11 @@ const SINICA_MAX_NATIVE_ZOOM = {
     'Kaohsiung_6K_1922': 18, 'Kaohsiung_10K_1926': 18,
     'Kaohsiung_10K_1936': 18, 'Kaohsiung_10K_1946': 18,
     'Kaohsiung_10K_1965': 18, 'Kaohsiung_10K_1980': 18,
+    // ── 台南 ──
+    'Tainan_1875': 18, 'Tainan_20K_1917': 18,
+    'Tainan_1935': 18, 'Tainan_1936': 18,
+    'Tainan_1943': 18, 'Tainan_1966': 18,
+    'Tainan_1996': 18,
     // ── 屏東 ──
     'Pingtung_6K_1912': 18, 'Pingtung_6K_1930': 18,
     'Pingtung_10K_1939': 18, 'Pingtung_10K_1976': 18,

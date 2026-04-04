@@ -126,6 +126,15 @@
                         <option value="chiayi_12K_1940">嘉義 1:12000 (1940)</option>
                         <option value="Chiayi_10K_1976">嘉義 1:10000 (1976)</option>
                     </optgroup>
+                    <optgroup label="── 台南 ──">
+                        <option value="Tainan_1875">台南地圖 (1875)</option>
+                        <option value="Tainan_20K_1917">台南 1:20000 (1917)</option>
+                        <option value="Tainan_1935">台南市街圖 (1935)</option>
+                        <option value="Tainan_1936">台南市街圖 (1936)</option>
+                        <option value="Tainan_1943">台南市街圖 (1943)</option>
+                        <option value="Tainan_1966">台南市街圖 (1966)</option>
+                        <option value="Tainan_1996">台南地圖 (1996)</option>
+                    </optgroup>
                     <optgroup label="── 高雄 ──">
                         <option value="Kaohsiung_1893">高雄市街圖 (1893)</option>
                         <option value="Kaohsiung_1929">高雄市街圖 (1929)</option>

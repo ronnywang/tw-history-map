@@ -281,6 +281,100 @@ html, body {
     opacity: 0.75;
 }
 
+/* ── 地圖內搜尋框 ── */
+.map-search {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 400;
+    width: 240px;
+}
+
+.search-input-row {
+    display: flex;
+    gap: 0;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.map-search input[type="text"] {
+    flex: 1;
+    font-size: 13px;
+    padding: 6px 10px;
+    border: none;
+    background: rgba(30, 44, 58, 0.92);
+    color: #ecf0f1;
+    outline: none;
+    min-width: 0;
+}
+
+.map-search input[type="text"]::placeholder {
+    color: #7f8c8d;
+}
+
+.map-search input[type="text"]:focus {
+    background: rgba(30, 44, 58, 1);
+}
+
+.map-search button {
+    font-size: 13px;
+    padding: 6px 10px;
+    border: none;
+    background: rgba(52, 152, 219, 0.85);
+    color: white;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.map-search button:hover {
+    background: rgba(41, 128, 185, 0.95);
+}
+
+.search-results {
+    margin-top: 4px;
+    background: rgba(30, 44, 58, 0.96);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.search-result-item {
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #ecf0f1;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    line-height: 1.4;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-item:hover {
+    background: rgba(52, 152, 219, 0.3);
+}
+
+.search-result-item .result-name {
+    font-weight: 600;
+}
+
+.search-result-item .result-type {
+    color: #7f8c8d;
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+.search-no-result {
+    padding: 10px 12px;
+    font-size: 12px;
+    color: #7f8c8d;
+    text-align: center;
+}
+
 /* ── 對位準心（滑鼠移動時顯示在對側地圖） ── */
 .map-crosshair {
     position: absolute;

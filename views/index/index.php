@@ -131,8 +131,10 @@
                         <option value="Tainan_20K_1917">台南 1:20000 (1917)</option>
                         <option value="Tainan_1935">台南市街圖 (1935)</option>
                         <option value="Tainan_1936">台南市街圖 (1936)</option>
-                        <option value="Tainan_1943">台南市街圖 (1943)</option>
-                        <option value="Tainan_1966">台南市街圖 (1966)</option>
+                        <option value="Tainan_1939">台南市街圖 (1939)</option>
+                        <option value="Tainan_1945">台南市街圖 (1945)</option>
+                        <option value="Tainan_1959">台南地圖 (1959)</option>
+                        <option value="Tainan_1971">台南地圖 (1971)</option>
                         <option value="Tainan_1996">台南地圖 (1996)</option>
                     </optgroup>
                     <optgroup label="── 高雄 ──">
@@ -165,6 +167,11 @@
         <div id="divider"></div>
         <div id="map-right">
             <div class="map-label" id="map-right-label">歷史地圖</div>
+            <!-- 超出圖層範圍提示 -->
+            <div id="out-of-bounds-notice" class="hidden">
+                <span id="oob-message"></span>
+                <a id="oob-fly-link" href="#">移至有資料的區域</a>
+            </div>
         </div>
     </div>
 

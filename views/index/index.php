@@ -18,6 +18,14 @@
     <div id="toolbar">
         <div id="toolbar-left">
             <span id="app-title"><?= htmlspecialchars($this->app_name) ?></span>
+            <!-- 現代地點搜尋 -->
+            <div id="search-modern" class="toolbar-search">
+                <div class="search-input-row">
+                    <input type="text" id="search-modern-input" placeholder="搜尋現代地點…" autocomplete="off" />
+                    <button id="search-modern-btn" title="搜尋">🔍</button>
+                </div>
+                <div id="search-modern-results" class="search-results hidden"></div>
+            </div>
         </div>
         <div id="toolbar-right">
             <!-- 右側地圖圖層選擇器 -->
@@ -163,14 +171,6 @@
     <div id="map-container">
         <div id="map-left">
             <div class="map-label">現代地圖</div>
-            <!-- 現代地點搜尋 -->
-            <div id="search-modern" class="map-search">
-                <div class="search-input-row">
-                    <input type="text" id="search-modern-input" placeholder="搜尋現代地點…" autocomplete="off" />
-                    <button id="search-modern-btn" title="搜尋">🔍</button>
-                </div>
-                <div id="search-modern-results" class="search-results hidden"></div>
-            </div>
         </div>
         <div id="divider"></div>
         <div id="map-right">

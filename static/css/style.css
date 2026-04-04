@@ -31,6 +31,12 @@ html, body {
     flex-shrink: 0;
 }
 
+#toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 #app-title {
     font-size: 16px;
     font-weight: 600;
@@ -281,64 +287,64 @@ html, body {
     opacity: 0.75;
 }
 
-/* ── 地圖內搜尋框 ── */
-.map-search {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 400;
-    width: 240px;
+/* ── toolbar 內搜尋框 ── */
+.toolbar-search {
+    position: relative;
 }
 
 .search-input-row {
     display: flex;
     gap: 0;
-    border-radius: 6px;
+    border-radius: 4px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
-.map-search input[type="text"] {
-    flex: 1;
+.toolbar-search input[type="text"] {
     font-size: 13px;
-    padding: 6px 10px;
-    border: none;
-    background: rgba(30, 44, 58, 0.92);
+    padding: 4px 8px;
+    border: 1px solid #546e7a;
+    border-right: none;
+    border-radius: 4px 0 0 4px;
+    background: #34495e;
     color: #ecf0f1;
     outline: none;
-    min-width: 0;
+    width: 200px;
 }
 
-.map-search input[type="text"]::placeholder {
+.toolbar-search input[type="text"]::placeholder {
     color: #7f8c8d;
 }
 
-.map-search input[type="text"]:focus {
-    background: rgba(30, 44, 58, 1);
+.toolbar-search input[type="text"]:focus {
+    border-color: #3498db;
 }
 
-.map-search button {
+.toolbar-search button {
     font-size: 13px;
-    padding: 6px 10px;
-    border: none;
-    background: rgba(52, 152, 219, 0.85);
-    color: white;
+    padding: 4px 10px;
+    border: 1px solid #546e7a;
+    border-radius: 0 4px 4px 0;
+    background: #34495e;
+    color: #ecf0f1;
     cursor: pointer;
     flex-shrink: 0;
 }
 
-.map-search button:hover {
-    background: rgba(41, 128, 185, 0.95);
+.toolbar-search button:hover {
+    background: #3d566e;
 }
 
 .search-results {
-    margin-top: 4px;
-    background: rgba(30, 44, 58, 0.96);
+    position: fixed;
+    background: rgba(30, 44, 58, 0.98);
+    border: 1px solid #546e7a;
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
     overflow: hidden;
     max-height: 280px;
     overflow-y: auto;
+    z-index: 9999;
+    min-width: 260px;
 }
 
 .search-result-item {

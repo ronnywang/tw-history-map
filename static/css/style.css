@@ -230,13 +230,11 @@ html, body {
 }
 
 .custom-select-panel {
-    position: absolute;
-    top: calc(100% + 4px);
-    right: 0;
+    position: fixed;
     background: #263545;
     border: 1px solid #546e7a;
     border-radius: 6px;
-    z-index: 2000;
+    z-index: 9999;
     min-width: 230px;
     max-height: 420px;
     overflow-y: auto;

@@ -713,6 +713,10 @@ refreshRightLayers();
         if (isOpen) {
             closePanel();
         } else {
+            // 以 fixed 定位，動態計算位置避免被 toolbar stacking context 擋住
+            const rect = btn.getBoundingClientRect();
+            panel.style.top   = (rect.bottom + 4) + 'px';
+            panel.style.right = (window.innerWidth - rect.right) + 'px';
             panel.classList.remove('hidden');
             btn.classList.add('open');
             // 捲動到目前選取的選項

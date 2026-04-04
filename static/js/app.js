@@ -320,8 +320,9 @@ let syncing        = false;   // 防止循環同步
 const mapLeft = L.map('map-left', {
     center: INIT_CENTER,
     zoom:   INIT_ZOOM,
-    zoomControl: true,
+    zoomControl: false,
 });
+L.control.zoom({ position: 'bottomleft' }).addTo(mapLeft);
 
 const mapRight = L.map('map-right', {
     center: INIT_CENTER,

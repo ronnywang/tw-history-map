@@ -187,9 +187,100 @@ html, body {
     color: #5dade2;
 }
 
-/* 下拉選單中超出範圍的選項：灰色 */
-#basemap-select option.out-of-range {
-    color: #888;
+/* ── 自製下拉選單 ── */
+#basemap-select-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.custom-select-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #546e7a;
+    background: #34495e;
+    color: #ecf0f1;
+    cursor: pointer;
+    white-space: nowrap;
+    min-width: 200px;
+    justify-content: space-between;
+    user-select: none;
+}
+
+.custom-select-btn:hover {
+    border-color: #3498db;
+}
+
+.custom-select-btn.open {
+    border-color: #3498db;
+}
+
+.cs-arrow {
+    font-size: 10px;
+    color: #bdc3c7;
+    flex-shrink: 0;
+    transition: transform 0.15s;
+}
+
+.custom-select-btn.open .cs-arrow {
+    transform: rotate(180deg);
+}
+
+.custom-select-panel {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: #263545;
+    border: 1px solid #546e7a;
+    border-radius: 6px;
+    z-index: 2000;
+    min-width: 230px;
+    max-height: 420px;
+    overflow-y: auto;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+.cs-group {
+    font-size: 11px;
+    color: #7f8c8d;
+    padding: 10px 12px 4px;
+    letter-spacing: 0.04em;
+    cursor: default;
+    border-top: 1px solid #2c3e50;
+}
+
+.cs-group:first-child {
+    border-top: none;
+}
+
+.cs-option {
+    font-size: 13px;
+    padding: 6px 14px;
+    color: #ecf0f1;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.cs-option:hover {
+    background: #2e4460;
+}
+
+.cs-option.cs-selected {
+    color: #3498db;
+    background: #1e3347;
+}
+
+.cs-option.cs-out-of-range {
+    color: #4a6272;
+    opacity: 0.55;
+}
+
+.cs-option.cs-out-of-range:hover {
+    background: #2e4460;
+    opacity: 0.75;
 }
 
 /* ── 對位準心（滑鼠移動時顯示在對側地圖） ── */

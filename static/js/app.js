@@ -386,11 +386,13 @@ function updateBoundsState() {
     const selectEl  = document.getElementById('basemap-select');
     const currentId = selectEl.value;
 
-    // 更新各選項的顯示顏色
-    for (const opt of selectEl.options) {
-        const bbox = LAYER_BBOX[opt.value];
-        if (!bbox) { opt.style.color = ''; continue; }
-        opt.style.color = boundsOverlap(mapBounds, bbox) ? '' : '#888';
+    // 更新自製下拉選單各選項的超出範圍樣式
+    const panel = document.getElementById('basemap-panel');
+    if (panel) {
+        for (const el of panel.querySelectorAll('.cs-option')) {
+            const bbox = LAYER_BBOX[el.dataset.value];
+            el.classList.toggle('cs-out-of-range', !!(bbox && !boundsOverlap(mapBounds, bbox)));
+        }
     }
 
     // 顯示或隱藏超出範圍提示
@@ -637,3 +639,91 @@ mapRight.on('zoomend', update1915Layers);
 
 // ── 初始化 ──
 refreshRightLayers();
+
+// ── 自製下拉選單（取代原生 select，讓超出範圍效果更明顯）──
+(function initCustomSelect() {
+    const selectEl = document.getElementById('basemap-select');
+    selectEl.style.display = 'none';
+
+    const wrapper = selectEl.parentNode;
+    wrapper.id = 'basemap-select-wrapper';
+
+    // 建立觸發按鈕
+    const btn = document.createElement('div');
+    btn.id = 'basemap-btn';
+    btn.className = 'custom-select-btn';
+    btn.innerHTML = '<span id="basemap-btn-label"></span><span class="cs-arrow">▾</span>';
+    wrapper.insertBefore(btn, selectEl);
+
+    // 建立下拉面板（從 select 的結構讀取）
+    const panel = document.createElement('div');
+    panel.id = 'basemap-panel';
+    panel.className = 'custom-select-panel hidden';
+
+    for (const child of selectEl.children) {
+        if (child.tagName === 'OPTGROUP') {
+            const grp = document.createElement('div');
+            grp.className = 'cs-group';
+            grp.textContent = child.label;
+            panel.appendChild(grp);
+            for (const opt of child.children) {
+                const el = document.createElement('div');
+                el.className = 'cs-option';
+                el.dataset.value = opt.value;
+                el.textContent = opt.textContent.trim();
+                panel.appendChild(el);
+            }
+        } else if (child.tagName === 'OPTION') {
+            const el = document.createElement('div');
+            el.className = 'cs-option';
+            el.dataset.value = child.value;
+            el.textContent = child.textContent.trim();
+            panel.appendChild(el);
+        }
+    }
+    wrapper.insertBefore(panel, selectEl);
+
+    function updateLabel() {
+        const sel = selectEl.options[selectEl.selectedIndex];
+        document.getElementById('basemap-btn-label').textContent = sel ? sel.textContent.trim() : '';
+        for (const el of panel.querySelectorAll('.cs-option')) {
+            el.classList.toggle('cs-selected', el.dataset.value === selectEl.value);
+        }
+    }
+
+    function closePanel() {
+        panel.classList.add('hidden');
+        btn.classList.remove('open');
+    }
+
+    panel.addEventListener('click', (e) => {
+        const optEl = e.target.closest('.cs-option');
+        if (!optEl) return;
+        selectEl.value = optEl.dataset.value;
+        selectEl.dispatchEvent(new Event('change'));
+        updateLabel();
+        closePanel();
+        // 選完後立刻捲動到選取的選項
+        optEl.scrollIntoView({ block: 'nearest' });
+    });
+
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = !panel.classList.contains('hidden');
+        if (isOpen) {
+            closePanel();
+        } else {
+            panel.classList.remove('hidden');
+            btn.classList.add('open');
+            // 捲動到目前選取的選項
+            const selEl = panel.querySelector('.cs-option.cs-selected');
+            if (selEl) selEl.scrollIntoView({ block: 'nearest' });
+        }
+    });
+
+    panel.addEventListener('click', (e) => e.stopPropagation());
+    document.addEventListener('click', closePanel);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePanel(); });
+
+    updateLabel();
+})();

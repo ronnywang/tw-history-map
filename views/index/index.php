@@ -33,6 +33,9 @@
                 <label for="basemap-select">右側圖層：</label>
                 <select id="basemap-select">
                     <option value="none">無</option>
+                    <optgroup label="── 本地圖磚 ──">
+                        <option value="osm_local">現代 OSM（本地圖磚）</option>
+                    </optgroup>
                     <optgroup label="── 行政區劃 ──">
                         <option value="hist1915">1915 臺北廳廳區</option>
                     </optgroup>

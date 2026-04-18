@@ -4,7 +4,9 @@ config.inc.php
 
 # 資料庫與快取（不進 repo）
 data/taiwan.db
+data/osm_taiwan.db
 data/tile_cache/
+taiwan-*.osm.pbf
 
 # Claude Code 本機設定
 .claude/

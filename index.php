@@ -39,6 +39,14 @@ MiniEngine::dispatch(function($uri){
         return ['tile', 'index'];
     }
 
+    // /osm/{z}/{x}/{y} → OsmTileController::indexAction
+    if (preg_match('#^/osm/(\d+)/(\d+)/(\d+)$#', $uri, $m)) {
+        $_GET['z'] = $m[1];
+        $_GET['x'] = $m[2];
+        $_GET['y'] = $m[3];
+        return ['osm_tile', 'index'];
+    }
+
     // /api/{action} → ApiController
     if (preg_match('#^/api/([^/]+)$#', $uri, $m)) {
         return ['api', $m[1]];

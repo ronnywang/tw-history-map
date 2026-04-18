@@ -349,6 +349,14 @@ function buildSinicaLayer(layerId) {
     });
 }
 
+function buildLocalOsmLayer() {
+    return L.tileLayer('/osm/{z}/{x}/{y}', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors（本地圖磚）',
+        maxZoom: 19,
+        maxNativeZoom: 17,
+    });
+}
+
 function refreshRightLayers() {
     if (basemapLayer) { mapRight.removeLayer(basemapLayer); basemapLayer = null; }
 
@@ -359,7 +367,10 @@ function refreshRightLayers() {
         document.getElementById('map-right-label').textContent = '1915 臺北廳廳區';
     } else {
         hist1915Visible = false;
-        if (layerId && layerId !== 'none') {
+        if (layerId === 'osm_local') {
+            basemapLayer = buildLocalOsmLayer();
+            basemapLayer.addTo(mapRight);
+        } else if (layerId && layerId !== 'none') {
             basemapLayer = buildSinicaLayer(layerId);
             basemapLayer.addTo(mapRight);
         }

@@ -84,7 +84,42 @@ class OsmTileController extends MiniEngine_Controller
         'religious'   => [200, 190, 230],
     ];
 
+    // Place label styles: [font_size, [R, G, B], min_zoom]
+    const PLACE_STYLES = [
+        'city'          => [14, [40,  40,  40],  8],
+        'town'          => [11, [50,  50,  50],  10],
+        'district'      => [10, [60,  60,  60],  11],
+        'suburb'        => [9,  [70,  70,  70],  12],
+        'village'       => [9,  [60,  60,  60],  12],
+        'neighbourhood' => [8,  [80,  80,  80],  13],
+        'hamlet'        => [8,  [70,  70,  70],  13],
+        'quarter'       => [8,  [80,  80,  80],  13],
+    ];
+
+    // Minimum zoom to start showing road name labels
+    const HIGHWAY_LABEL_MIN_ZOOM = [
+        'motorway'     => 10,
+        'trunk'        => 11,
+        'primary'      => 12,
+        'secondary'    => 13,
+        'tertiary'     => 14,
+        'residential'  => 15,
+        'unclassified' => 15,
+        'living_street'=> 15,
+        'pedestrian'   => 15,
+        'service'      => 16,
+    ];
+
+    // Road label font sizes
+    const HIGHWAY_LABEL_SIZE = [
+        'motorway' => 11, 'trunk' => 10, 'primary' => 10,
+        'secondary' => 9, 'tertiary' => 8,
+        'residential' => 7, 'unclassified' => 7, 'living_street' => 7,
+        'pedestrian' => 7, 'service' => 7,
+    ];
+
     private static ?SQLite3 $osmDb = null;
+    private static ?string  $fontPath = null;
 
     // ── 路由處理 ──────────────────────────────────────────────────────────
 
@@ -160,6 +195,11 @@ class OsmTileController extends MiniEngine_Controller
         if ($z >= 9)  $this->drawWaterways($img, $db, $bbox, $minLon, $minLat, $maxLon, $maxLat, $simplify, $z);
         if ($z >= 10) $this->drawRoads($img, $db, $bbox, $minLon, $minLat, $maxLon, $maxLat, $simplify, $z);
         if ($z >= 15) $this->drawBuildings($img, $db, $bbox, $minLon, $minLat, $maxLon, $maxLat, $simplify);
+
+        // Labels on top of all geometry
+        if ($z >= 8 && $this->getFontPath()) {
+            $this->drawLabels($img, $db, $bbox, $minLon, $minLat, $maxLon, $maxLat, $z);
+        }
 
         return $img;
     }
@@ -380,6 +420,183 @@ class OsmTileController extends MiniEngine_Controller
             $geojson = json_decode($row['geojson'], true);
             if (!$geojson) continue;
             $this->drawGeoJsonPolygon($img, $geojson, $bbox, $fill, $border, 1);
+        }
+    }
+
+    // ── 文字標籤 ──────────────────────────────────────────────────────────
+
+    private function getFontPath(): ?string
+    {
+        if (self::$fontPath !== null) return self::$fontPath ?: null;
+
+        $candidates = [
+            getenv('OSM_FONT_PATH') ?: '',
+            MINI_ENGINE_ROOT . '/static/fonts/NotoSansCJK-Regular.ttc',
+            '/System/Library/Fonts/PingFang.ttc',               // macOS
+            '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+            '/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc',
+            '/usr/share/fonts/truetype/noto/NotoSansCJKtc-Regular.otf',
+        ];
+        foreach ($candidates as $p) {
+            if ($p && file_exists($p)) {
+                self::$fontPath = $p;
+                return $p;
+            }
+        }
+        self::$fontPath = '';
+        return null;
+    }
+
+    /**
+     * 繪製帶白色 halo 的文字，並進行碰撞偵測。
+     * $placed 為已放置文字的 bbox 陣列 [[x0,y0,x1,y1],...]，會被修改。
+     * 回傳是否成功放置。
+     */
+    private function drawLabel(\GdImage $img, float $size, float $angle,
+        int $cx, int $cy, string $text,
+        array $fgColor, array &$placed, int $pad = 3): bool
+    {
+        $font = $this->getFontPath();
+        if (!$font || $text === '') return false;
+
+        // Measure text (unrotated for bounding box check)
+        $bb = imagettfbbox($size, 0, $font, $text);
+        $tw = abs($bb[2] - $bb[0]);
+        $th = abs($bb[7] - $bb[1]);
+        if ($tw < 1) return false;
+
+        // Anchor: centre the text horizontally & vertically on ($cx,$cy)
+        $px = $cx - (int)($tw / 2);
+        $py = $cy + (int)($th / 2);
+
+        // Collision box (always axis-aligned, ignores rotation for simplicity)
+        $half_diag = (int)(sqrt($tw * $tw + $th * $th) / 2) + $pad;
+        $box = [$cx - $half_diag, $cy - $half_diag, $cx + $half_diag, $cy + $half_diag];
+        foreach ($placed as $p) {
+            if ($box[0] < $p[2] && $box[2] > $p[0] && $box[1] < $p[3] && $box[3] > $p[1]) {
+                return false;
+            }
+        }
+        $placed[] = $box;
+
+        // White halo (draw text 8 directions at offset 1-2px)
+        $halo = imagecolorallocate($img, 255, 255, 255);
+        foreach ([[-2,0],[2,0],[0,-2],[0,2],[-1,-1],[1,-1],[-1,1],[1,1]] as [$dx, $dy]) {
+            imagettftext($img, $size, $angle, $px + $dx, $py + $dy, $halo, $font, $text);
+        }
+
+        // Main text
+        $fg = imagecolorallocate($img, $fgColor[0], $fgColor[1], $fgColor[2]);
+        imagettftext($img, $size, $angle, $px, $py, $fg, $font, $text);
+
+        return true;
+    }
+
+    private function drawLabels(\GdImage $img, SQLite3 $db, array $bbox,
+        float $x0, float $y0, float $x1, float $y1, int $z): void
+    {
+        $placed = [];
+
+        // 1. Place names (背景 → 道路名稱之前先放，保證城市名稱不被擋)
+        $this->drawPlaceLabels($img, $db, $bbox, $x0, $y0, $x1, $y1, $z, $placed);
+
+        // 2. Road names
+        if ($z >= 10) {
+            $this->drawRoadLabels($img, $db, $bbox, $x0, $y0, $x1, $y1, $z, $placed);
+        }
+    }
+
+    private function drawPlaceLabels(\GdImage $img, SQLite3 $db, array $bbox,
+        float $x0, float $y0, float $x1, float $y1, int $z, array &$placed): void
+    {
+        $sql = "
+            SELECT p.name, p.name_zh, p.place,
+                   X(p.GEOMETRY) as lon, Y(p.GEOMETRY) as lat
+            FROM points p
+            JOIN idx_points_GEOMETRY idx ON p.ogc_fid = idx.pkid
+            WHERE idx.xmin <= {$x1} AND idx.xmax >= {$x0}
+              AND idx.ymin <= {$y1} AND idx.ymax >= {$y0}
+              AND p.place IS NOT NULL
+              AND (p.name IS NOT NULL OR p.name_zh IS NOT NULL)
+            LIMIT 300
+        ";
+
+        $result = $db->query($sql);
+        if (!$result) return;
+
+        while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
+            $place = $row['place'] ?? '';
+            $style = self::PLACE_STYLES[$place] ?? null;
+            if (!$style) continue;
+            [$size, $color, $minZoom] = $style;
+            if ($z < $minZoom) continue;
+
+            $label = $row['name_zh'] ?: $row['name'];
+            if (!$label) continue;
+
+            [$px, $py] = $this->lonlat2pixel((float)$row['lon'], (float)$row['lat'], $bbox);
+            $this->drawLabel($img, $size, 0, $px, $py, $label, $color, $placed);
+        }
+    }
+
+    private function drawRoadLabels(\GdImage $img, SQLite3 $db, array $bbox,
+        float $x0, float $y0, float $x1, float $y1, int $z, array &$placed): void
+    {
+        // Build the list of road types that get labels at this zoom
+        $types = [];
+        foreach (self::HIGHWAY_LABEL_MIN_ZOOM as $type => $minZ) {
+            if ($z >= $minZ) $types[] = $type;
+        }
+        if (empty($types)) return;
+
+        $type_list = "'" . implode("','", $types) . "'";
+
+        $sql = "
+            SELECT l.highway, l.name, l.name_zh,
+                   X(Line_Interpolate_Point(l.GEOMETRY, 0.5))  AS mx,
+                   Y(Line_Interpolate_Point(l.GEOMETRY, 0.5))  AS my,
+                   X(Line_Interpolate_Point(l.GEOMETRY, 0.35)) AS ax,
+                   Y(Line_Interpolate_Point(l.GEOMETRY, 0.35)) AS ay,
+                   X(Line_Interpolate_Point(l.GEOMETRY, 0.65)) AS bx,
+                   Y(Line_Interpolate_Point(l.GEOMETRY, 0.65)) AS by
+            FROM lines l
+            JOIN idx_lines_GEOMETRY idx ON l.ogc_fid = idx.pkid
+            WHERE idx.xmin <= {$x1} AND idx.xmax >= {$x0}
+              AND idx.ymin <= {$y1} AND idx.ymax >= {$y0}
+              AND l.highway IN ({$type_list})
+              AND (l.name IS NOT NULL OR l.name_zh IS NOT NULL)
+            LIMIT 800
+        ";
+
+        $result = $db->query($sql);
+        if (!$result) return;
+
+        while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
+            $type  = $row['highway'];
+            $label = $row['name_zh'] ?: $row['name'];
+            if (!$label) continue;
+            if ($row['mx'] === null) continue;
+
+            $size  = self::HIGHWAY_LABEL_SIZE[$type] ?? 7;
+            $color = match(true) {
+                in_array($type, ['motorway','motorway_link'])       => [180, 60,  80],
+                in_array($type, ['trunk','trunk_link'])             => [180, 100, 60],
+                in_array($type, ['primary','primary_link'])         => [140, 100, 20],
+                in_array($type, ['secondary','secondary_link'])     => [100, 100, 20],
+                default                                             => [80,  80,  80],
+            };
+
+            [$mx, $my] = $this->lonlat2pixel((float)$row['mx'], (float)$row['my'], $bbox);
+
+            // Calculate road angle for text rotation
+            [$ax, $ay] = $this->lonlat2pixel((float)$row['ax'], (float)$row['ay'], $bbox);
+            [$bx, $by] = $this->lonlat2pixel((float)$row['bx'], (float)$row['by'], $bbox);
+            $angle = rad2deg(atan2($ay - $by, $bx - $ax));  // GD: CCW from east
+            // Keep text readable: flip if upside-down
+            if ($angle > 90)  $angle -= 180;
+            if ($angle < -90) $angle += 180;
+
+            $this->drawLabel($img, $size, $angle, $mx, $my, $label, $color, $placed);
         }
     }
 

@@ -7,7 +7,10 @@
  */
 class OsmTileController extends MiniEngine_Controller
 {
-    const TILE_SIZE = 256;
+    const TILE_SIZE    = 256;
+    // Extra pixels on each side of the canvas so labels near tile edges aren't clipped.
+    // The geometry is rendered into (TILE_SIZE + 2*LABEL_BUFFER)² and cropped at the end.
+    const LABEL_BUFFER = 80;
 
     // Highway styles: [fill_rgb, casing_rgb, base_width, casing_extra_px]
     // base_width is at zoom 14; scaled up/down by zoom factor
@@ -118,8 +121,11 @@ class OsmTileController extends MiniEngine_Controller
         'pedestrian' => 7, 'service' => 7,
     ];
 
-    private static ?SQLite3 $osmDb = null;
+    private static ?SQLite3 $osmDb    = null;
     private static ?string  $fontPath = null;
+    // Actual canvas size during a single renderTile() call (TILE_SIZE + 2*LABEL_BUFFER).
+    // Stored as instance state so lonlat2pixel() doesn't need an extra parameter.
+    private int $canvSize = self::TILE_SIZE;
 
     // ── 路由處理 ──────────────────────────────────────────────────────────
 
@@ -172,8 +178,8 @@ class OsmTileController extends MiniEngine_Controller
 
     private function lonlat2pixel(float $lon, float $lat, array $bbox): array
     {
-        $px = ($lon - $bbox[0]) / ($bbox[2] - $bbox[0]) * self::TILE_SIZE;
-        $py = ($bbox[3] - $lat) / ($bbox[3] - $bbox[1]) * self::TILE_SIZE;
+        $px = ($lon - $bbox[0]) / ($bbox[2] - $bbox[0]) * $this->canvSize;
+        $py = ($bbox[3] - $lat) / ($bbox[3] - $bbox[1]) * $this->canvSize;
         return [(int)round($px), (int)round($py)];
     }
 
@@ -181,27 +187,45 @@ class OsmTileController extends MiniEngine_Controller
 
     private function renderTile(array $bbox, int $z): \GdImage
     {
-        $img = imagecreatetruecolor(self::TILE_SIZE, self::TILE_SIZE);
-        $bg  = imagecolorallocate($img, 242, 239, 233);   // OSM 標準背景色
+        $buf = self::LABEL_BUFFER;
+        $cs  = self::TILE_SIZE + 2 * $buf;   // e.g. 416
+        $this->canvSize = $cs;
+
+        // Expand the bbox by $buf pixels on each side so labels near tile
+        // edges can overflow without being clipped by the canvas boundary.
+        // Because we expand proportionally, lonPerPx stays constant, so
+        // $simplify and imagesetthickness values remain correct.
+        $lonPerPx = ($bbox[2] - $bbox[0]) / self::TILE_SIZE;
+        $latPerPx = ($bbox[3] - $bbox[1]) / self::TILE_SIZE;
+        $eb = [                                // expanded bbox
+            $bbox[0] - $lonPerPx * $buf,       // minLon
+            $bbox[1] - $latPerPx * $buf,       // minLat
+            $bbox[2] + $lonPerPx * $buf,       // maxLon
+            $bbox[3] + $latPerPx * $buf,       // maxLat
+        ];
+
+        $simplify = $lonPerPx * 0.5;           // same as ($bbox width / TILE_SIZE * 0.5)
+        $db = $this->getOsmDb();
+        [$x0, $y0, $x1, $y1] = $eb;           // R*Tree bounds
+
+        // Render everything onto the larger canvas
+        $img = imagecreatetruecolor($cs, $cs);
+        $bg  = imagecolorallocate($img, 242, 239, 233);
         imagefill($img, 0, 0, $bg);
 
-        $simplify = ($bbox[2] - $bbox[0]) / self::TILE_SIZE * 0.5;
-        $db  = $this->getOsmDb();
+        if ($z >= 7)  $this->drawLanduse($img, $db, $eb, $x0, $y0, $x1, $y1, $simplify);
+        if ($z >= 9)  $this->drawWaterways($img, $db, $eb, $x0, $y0, $x1, $y1, $simplify, $z);
+        if ($z >= 10) $this->drawRoads($img, $db, $eb, $x0, $y0, $x1, $y1, $simplify, $z);
+        if ($z >= 15) $this->drawBuildings($img, $db, $eb, $x0, $y0, $x1, $y1, $simplify);
 
-        // Unpack bbox for R*Tree queries: [minLon, minLat, maxLon, maxLat]
-        [$minLon, $minLat, $maxLon, $maxLat] = $bbox;
-
-        if ($z >= 7)  $this->drawLanduse($img, $db, $bbox, $minLon, $minLat, $maxLon, $maxLat, $simplify);
-        if ($z >= 9)  $this->drawWaterways($img, $db, $bbox, $minLon, $minLat, $maxLon, $maxLat, $simplify, $z);
-        if ($z >= 10) $this->drawRoads($img, $db, $bbox, $minLon, $minLat, $maxLon, $maxLat, $simplify, $z);
-        if ($z >= 15) $this->drawBuildings($img, $db, $bbox, $minLon, $minLat, $maxLon, $maxLat, $simplify);
-
-        // Labels on top of all geometry
         if ($z >= 8 && $this->getFontPath()) {
-            $this->drawLabels($img, $db, $bbox, $minLon, $minLat, $maxLon, $maxLat, $z);
+            $this->drawLabels($img, $db, $eb, $x0, $y0, $x1, $y1, $z);
         }
 
-        return $img;
+        // Crop the centre TILE_SIZE × TILE_SIZE, discarding the buffer border
+        $out = imagecreatetruecolor(self::TILE_SIZE, self::TILE_SIZE);
+        imagecopy($out, $img, 0, 0, $buf, $buf, self::TILE_SIZE, self::TILE_SIZE);
+        return $out;
     }
 
     // ── Landuse 面積 ──────────────────────────────────────────────────────
